@@ -5,6 +5,7 @@ Authors: Ondřej Čertík
 -/
 module
 
+public import Mathlib.Algebra.Group.AddChar
 public import Mathlib.Analysis.RCLike.Basic
 public import Mathlib.MeasureTheory.Function.LocallyIntegrable
 public import Mathlib.MeasureTheory.Integral.DominatedConvergence
@@ -21,10 +22,12 @@ theorem `MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`.
 
 ## Main results
 
-* `continuous_of_measurable_of_mul`: a measurable `f : ℝ → 𝕜` with `f (x + y) = f x * f y` and
-  `f 0 ≠ 0` is continuous.
+* `AddChar.continuous_of_measurable`: a measurable additive character `ψ : AddChar ℝ 𝕜` is
+  continuous.
+* `continuous_of_measurable_of_mul`: a measurable `f : ℝ → 𝕜` with `f (x + y) = f x * f y` is
+  continuous (either `f` is identically zero, or it is nowhere zero).
 * `continuous_of_measurable_of_mul_units`: the same for a measurable `f : ℝ → 𝕜ˣ` with
-  `f (x + y) = f x * f y` (here no nonvanishing hypothesis is needed, the values are units).
+  `f (x + y) = f x * f y`.
 
 ## Implementation notes
 
@@ -51,11 +54,9 @@ open MeasureTheory
 
 variable {𝕜 : Type*} [RCLike 𝕜] [MeasurableSpace 𝕜] [BorelSpace 𝕜]
 
-/-- **Automatic continuity for the multiplicative Cauchy equation.** A Borel-measurable
-`f : ℝ → 𝕜` (`RCLike 𝕜`, e.g. `ℝ` or `ℂ`) with `f (x + y) = f x * f y` and `f 0 ≠ 0` is
-continuous. This is the multiplicative companion of
-`MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`. -/
-theorem continuous_of_measurable_of_mul {f : ℝ → 𝕜} (hmeas : Measurable f)
+/-- Nonvanishing case of `continuous_of_measurable_of_mul`: a Borel-measurable `f : ℝ → 𝕜` with
+`f (x + y) = f x * f y` and `f 0 ≠ 0` (equivalently, `f` nowhere zero) is continuous. -/
+private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : Measurable f)
     (hmul : ∀ x y, f (x + y) = f x * f y) (h0 : f 0 ≠ 0) : Continuous f := by
   -- The hypotheses force `f` to vanish nowhere.
   have hne : ∀ x, f x ≠ 0 := by
@@ -76,10 +77,8 @@ theorem continuous_of_measurable_of_mul {f : ℝ → 𝕜} (hmeas : Measurable f
   have hbcont : Continuous fun t => Real.log (ρ t) :=
     MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable
       (AddMonoidHom.mk' (fun t => Real.log (ρ t)) hbadd) hbmeas
-  have hρcont : Continuous ρ := by
-    have hrw : ρ = fun t => Real.exp (Real.log (ρ t)) := by
-      funext t; rw [Real.exp_log (hρpos t)]
-    rw [hrw]; exact Real.continuous_exp.comp hbcont
+  have hρcont : Continuous ρ :=
+    (Real.continuous_exp.comp hbcont).congr fun t ↦ Real.exp_log (hρpos t)
   -- `f` is interval integrable on every interval, dominated by the continuous modulus.
   have haesm : AEStronglyMeasurable f volume := hmeas.aestronglyMeasurable
   have hii : ∀ a b : ℝ, IntervalIntegrable f volume a b := by
@@ -129,6 +128,18 @@ theorem continuous_of_measurable_of_mul {f : ℝ → 𝕜} (hmeas : Measurable f
   exact ((((hFcont.comp (continuous_id.add continuous_const)).sub hFcont)).div_const (F a)).congr
     fun s => (hwindow s).symm
 
+/-- **Automatic continuity for the multiplicative Cauchy equation.** A Borel-measurable
+`f : ℝ → 𝕜` (`RCLike 𝕜`, e.g. `ℝ` or `ℂ`) with `f (x + y) = f x * f y` is continuous. No
+nonvanishing hypothesis is needed: such an `f` is either identically zero or nowhere zero. This is
+the multiplicative companion of `MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`. -/
+theorem continuous_of_measurable_of_mul {f : ℝ → 𝕜} (hmeas : Measurable f)
+    (hmul : ∀ x y, f (x + y) = f x * f y) : Continuous f := by
+  rcases eq_or_ne (f 0) 0 with h0 | h0
+  · have hf0 : f = fun _ ↦ (0 : 𝕜) := funext fun x ↦ by
+      have := hmul x 0; rwa [add_zero, h0, mul_zero] at this
+    rw [hf0]; exact continuous_const
+  · exact continuous_of_measurable_of_mul_aux hmeas hmul h0
+
 /-- **Automatic continuity for measurable homomorphisms `(ℝ, +) → 𝕜ˣ`.** A Borel-measurable
 `f : ℝ → 𝕜ˣ` (`RCLike 𝕜`) with `f (x + y) = f x * f y` is continuous. This specializes at `𝕜 = ℂ`
 to the automatic continuity of measurable group homomorphisms `(ℝ, +) → ℂˣ`. -/
@@ -138,7 +149,15 @@ theorem continuous_of_measurable_of_mul_units {f : ℝ → 𝕜ˣ} (hmeas : Meas
   have hmulval : ∀ x y, ((f (x + y) : 𝕜)) = (f x : 𝕜) * (f y : 𝕜) := by
     intro x y; rw [hmul, Units.val_mul]
   have hcont : Continuous fun x => (f x : 𝕜) :=
-    continuous_of_measurable_of_mul hval hmulval (f 0).ne_zero
+    continuous_of_measurable_of_mul hval hmulval
   rw [Units.continuous_iff]
   exact ⟨hcont, (hcont.inv₀ fun x => (f x).ne_zero).congr
     fun x => (Units.val_inv_eq_inv_val (f x)).symm⟩
+
+/-- **Automatic continuity of measurable additive characters on `ℝ`.** A Borel-measurable additive
+character `ψ : AddChar ℝ 𝕜` (`RCLike 𝕜`) is continuous. This is the multiplicative companion of
+`MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`; at `𝕜 = ℂ` it gives the automatic
+continuity of measurable characters `ℝ → ℂ`. -/
+theorem AddChar.continuous_of_measurable {ψ : AddChar ℝ 𝕜} (hmeas : Measurable ψ) :
+    Continuous ψ :=
+  continuous_of_measurable_of_mul hmeas ψ.map_add_eq_mul
