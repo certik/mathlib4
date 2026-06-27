@@ -16,7 +16,7 @@ public import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
 # Automatic continuity of measurable multiplicative maps on `ℝ`
 
 A Borel-measurable solution of the *multiplicative* Cauchy functional equation on `ℝ`, i.e. a
-measurable `f : ℝ → 𝕜` (with `RCLike 𝕜`) satisfying `f (x + y) = f x * f y` and `f 0 ≠ 0`, is
+measurable `f : ℝ → 𝕜` (with `RCLike 𝕜`) satisfying `f (x + y) = f x * f y`, is
 automatically continuous. This is the multiplicative companion of the additive automatic-continuity
 theorem `MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`.
 
@@ -31,10 +31,12 @@ theorem `MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`.
 
 ## Implementation notes
 
-The modulus `‖f‖` is multiplicative, so `t ↦ Real.log ‖f t‖` is an additive measurable map `ℝ → ℝ`,
-hence continuous by `MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`; thus `‖f‖` is
-continuous and `f` is locally bounded, so interval integrable. The primitive `F y = ∫₀ʸ f` is
-continuous, and the interval form of the Lebesgue differentiation theorem
+If `f 0 = 0` then `f` vanishes identically (since `f x = f x * f 0`) and is continuous, so we may
+assume `f` is nowhere zero. The modulus `‖f‖` is multiplicative, so `t ↦ Real.log ‖f t‖` is an
+additive measurable map `ℝ → ℝ`, hence continuous by
+`MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable`; thus `‖f‖` is continuous and `f` is
+locally bounded, so interval integrable. The primitive `F y = ∫₀ʸ f` is continuous, and the interval
+form of the Lebesgue differentiation theorem
 (`MeasureTheory.LocallyIntegrable.ae_hasDerivAt_integral`) forces `F a ≠ 0` for some `a` (otherwise
 `f = 0` almost everywhere, impossible since `f` never vanishes). The homomorphism property gives the
 sliding-window identity `f s * F a = ∫ₛ^{s+a} f = F (s + a) - F s`, so
@@ -91,8 +93,7 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
   have hFcont : Continuous F := intervalIntegral.continuous_primitive hii 0
   -- Some window `[0, a]` has nonzero integral, by the Lebesgue differentiation theorem.
   have hExists : ∃ a : ℝ, F a ≠ 0 := by
-    by_contra hcon
-    simp only [not_exists, not_ne_iff] at hcon
+    by_contra! hcon
     have hloc : LocallyIntegrable f volume :=
       hρcont.locallyIntegrable.mono haesm
         (ae_of_all _ fun x ↦ le_of_eq <| by
@@ -113,9 +114,8 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
   have hwindow : ∀ s : ℝ, f s = (F (s + a) - F s) / F a := by
     intro s
     have h2 : (∫ u in (0 : ℝ)..a, f (s + u)) = f s * ∫ u in (0 : ℝ)..a, f u := by
-      have hfun : (fun u ↦ f (s + u)) = fun u ↦ f s * f u := by
-        funext u; rw [hmul s u]
-      rw [hfun, intervalIntegral.integral_const_mul]
+      simp_rw [hmul s]
+      rw [intervalIntegral.integral_const_mul]
     have hsub : f s * F a = ∫ t in s..(s + a), f t := by
       have hFa : F a = ∫ u in (0 : ℝ)..a, f u := rfl
       rw [hFa, ← h2, intervalIntegral.integral_comp_add_left f s, add_zero]
