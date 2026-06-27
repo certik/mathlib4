@@ -65,18 +65,18 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
     have hfac : f 0 = f x * f (-x) := by rw [← hmul x (-x), add_neg_cancel]
     rw [hfac, hx, zero_mul]
   -- Modulus continuity via the additive automatic-continuity theorem.
-  set ρ : ℝ → ℝ := fun t => ‖f t‖ with hρdef
-  have hρpos : ∀ t, 0 < ρ t := fun t => norm_pos_iff.mpr (hne t)
+  set ρ : ℝ → ℝ := fun t ↦ ‖f t‖ with hρdef
+  have hρpos : ∀ t, 0 < ρ t := fun t ↦ norm_pos_iff.mpr (hne t)
   have hbadd : ∀ x y, Real.log (ρ (x + y)) = Real.log (ρ x) + Real.log (ρ y) := by
     intro x y
     rw [hρdef]
     simp only [hmul x y, norm_mul,
       Real.log_mul (ne_of_gt (norm_pos_iff.mpr (hne x))) (ne_of_gt (norm_pos_iff.mpr (hne y)))]
-  have hbmeas : Measurable fun t => Real.log (ρ t) :=
+  have hbmeas : Measurable fun t ↦ Real.log (ρ t) :=
     Real.measurable_log.comp (continuous_norm.measurable.comp hmeas)
-  have hbcont : Continuous fun t => Real.log (ρ t) :=
+  have hbcont : Continuous fun t ↦ Real.log (ρ t) :=
     MeasureTheory.Measure.AddMonoidHom.continuous_of_measurable
-      (AddMonoidHom.mk' (fun t => Real.log (ρ t)) hbadd) hbmeas
+      (AddMonoidHom.mk' (fun t ↦ Real.log (ρ t)) hbadd) hbmeas
   have hρcont : Continuous ρ :=
     (Real.continuous_exp.comp hbcont).congr fun t ↦ Real.exp_log (hρpos t)
   -- `f` is interval integrable on every interval, dominated by the continuous modulus.
@@ -85,9 +85,9 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
     intro a b
     rw [intervalIntegrable_iff]
     exact Integrable.mono' (intervalIntegrable_iff.mp (hρcont.intervalIntegrable a b))
-      haesm.restrict (ae_of_all _ fun x => (congrFun hρdef x).ge)
+      haesm.restrict (ae_of_all _ fun x ↦ (congrFun hρdef x).ge)
   -- The primitive of `f` is continuous.
-  set F : ℝ → 𝕜 := fun y => ∫ t in (0 : ℝ)..y, f t with hFdef
+  set F : ℝ → 𝕜 := fun y ↦ ∫ t in (0 : ℝ)..y, f t with hFdef
   have hFcont : Continuous F := intervalIntegral.continuous_primitive hii 0
   -- Some window `[0, a]` has nonzero integral, by the Lebesgue differentiation theorem.
   have hExists : ∃ a : ℝ, F a ≠ 0 := by
@@ -95,10 +95,10 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
     simp only [not_exists, not_ne_iff] at hcon
     have hloc : LocallyIntegrable f volume :=
       hρcont.locallyIntegrable.mono haesm
-        (ae_of_all _ fun x => le_of_eq <| by
+        (ae_of_all _ fun x ↦ le_of_eq <| by
           rw [congrFun hρdef x, Real.norm_eq_abs, abs_of_nonneg (norm_nonneg _)])
     have hzero : ∀ᵐ x : ℝ, f x = 0 := by
-      have hF0 : F = fun _ => (0 : 𝕜) := funext hcon
+      have hF0 : F = fun _ ↦ (0 : 𝕜) := funext hcon
       filter_upwards [LocallyIntegrable.ae_hasDerivAt_integral hloc] with x hx
       have hd := hx 0
       rw [← hFdef, hF0] at hd
@@ -113,7 +113,7 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
   have hwindow : ∀ s : ℝ, f s = (F (s + a) - F s) / F a := by
     intro s
     have h2 : (∫ u in (0 : ℝ)..a, f (s + u)) = f s * ∫ u in (0 : ℝ)..a, f u := by
-      have hfun : (fun u => f (s + u)) = fun u => f s * f u := by
+      have hfun : (fun u ↦ f (s + u)) = fun u ↦ f s * f u := by
         funext u; rw [hmul s u]
       rw [hfun, intervalIntegral.integral_const_mul]
     have hsub : f s * F a = ∫ t in s..(s + a), f t := by
@@ -125,8 +125,8 @@ private theorem continuous_of_measurable_of_mul_aux {f : ℝ → 𝕜} (hmeas : 
       have hFs : F s = ∫ t in (0 : ℝ)..s, f t := rfl
       rw [hFsa, hFs, ← h]; ring
     rw [eq_div_iff ha, hsub, hadj]
-  exact ((((hFcont.comp (continuous_id.add continuous_const)).sub hFcont)).div_const (F a)).congr
-    fun s => (hwindow s).symm
+  exact (((hFcont.comp (continuous_id.add continuous_const)).sub hFcont).div_const (F a)).congr
+    fun s ↦ (hwindow s).symm
 
 /-- **Automatic continuity for the multiplicative Cauchy equation.** A Borel-measurable
 `f : ℝ → 𝕜` (`RCLike 𝕜`, e.g. `ℝ` or `ℂ`) with `f (x + y) = f x * f y` is continuous. No
@@ -145,14 +145,14 @@ theorem continuous_of_measurable_of_mul {f : ℝ → 𝕜} (hmeas : Measurable f
 to the automatic continuity of measurable group homomorphisms `(ℝ, +) → ℂˣ`. -/
 theorem continuous_of_measurable_of_mul_units {f : ℝ → 𝕜ˣ} (hmeas : Measurable f)
     (hmul : ∀ x y, f (x + y) = f x * f y) : Continuous f := by
-  have hval : Measurable fun x => (f x : 𝕜) := (comap_measurable Units.val).comp hmeas
-  have hmulval : ∀ x y, ((f (x + y) : 𝕜)) = (f x : 𝕜) * (f y : 𝕜) := by
+  have hval : Measurable fun x ↦ (f x : 𝕜) := (comap_measurable Units.val).comp hmeas
+  have hmulval : ∀ x y, (f (x + y) : 𝕜) = (f x : 𝕜) * (f y : 𝕜) := by
     intro x y; rw [hmul, Units.val_mul]
-  have hcont : Continuous fun x => (f x : 𝕜) :=
+  have hcont : Continuous fun x ↦ (f x : 𝕜) :=
     continuous_of_measurable_of_mul hval hmulval
   rw [Units.continuous_iff]
-  exact ⟨hcont, (hcont.inv₀ fun x => (f x).ne_zero).congr
-    fun x => (Units.val_inv_eq_inv_val (f x)).symm⟩
+  exact ⟨hcont, (hcont.inv₀ fun x ↦ (f x).ne_zero).congr
+    fun x ↦ (Units.val_inv_eq_inv_val (f x)).symm⟩
 
 /-- **Automatic continuity of measurable additive characters on `ℝ`.** A Borel-measurable additive
 character `ψ : AddChar ℝ 𝕜` (`RCLike 𝕜`) is continuous. This is the multiplicative companion of
