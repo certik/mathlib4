@@ -36,6 +36,7 @@ Use it as a lint list during self-review: scan for anything resembling a "wrong"
 - let `simp` intro (`map_add' x y := by simp`); `Set.mem_Icc.mpr ⟨…⟩` not bare `⟨…⟩`; drop redundant `↑`. *(#40634, #40655, #40795)*
 - `_` for unused names; short namespace alias; remove dead `open`; no space after unary minus. *(#40944, #41034, #40890)*
 - remove `erw`/stray `rfl` (add API); don't reformat unrelated code; golf only where it *improves* readability. *(#41014, #39531, #4702)*
+- **fold/invert `have`s** to cut nesting: inline short `have`s; turn a big `have` + one-line `exact` into a short fact + `convert` + the former `have` body as the main goal. *(#40973)*
 
 ## Docs / meta
 - docstring matches the statement and describes **purpose** not implementation; continuation lines unindented; module docstring needs a summary. *(#41008, #39740, #40248, #40714)*

@@ -95,3 +95,46 @@ following brittle tactic breaks easily — close such goals with `simpa using �
 Extract reusable auxiliary lemmas and large `suffices` statements into named lemmas. Mark genuinely
 file-local helpers `private` (and/or `aux` with a docstring "Not intended for use outside this file").
 *(#40944, #41034, #40000.)*
+
+## Proof shape: fold and invert `have`s
+
+Deep indentation is a tell-tale sign of machine-written proofs: a large `have` scaffold is built up
+first, then discharged by a one-line `exact` at the very end. Idiomatic Mathlib proofs instead read
+top-down with as little nesting as possible. Two complementary moves (named in the review of #40973)
+fix most cases:
+
+- **`have`-folding** — inline a `have` whose proof is short. A one-tactic step (`by fun_prop`, a
+  single `simp_rw`/`rw`) rarely earns a name; inlining it deletes a layer of indentation. Below, the
+  nested `have hfun … ; rw [hfun, …]` folds into a single `simp_rw [hmul s, …]`.
+- **`have`-inverting** — when the shape is "prove one big `have`, then a short `exact` that consumes
+  it", flip it. Prove the *short* fact first (often the goal's outer shape, closed by `fun_prop` or
+  another automation tactic), then `convert` (or `suffices`) down to the equality that was the
+  `have`'s content, so that former `have` body becomes the **main** proof body. The
+  `have … := by intro …` wrapper and the extra indentation it forced both disappear.
+
+```lean
+-- before: a big `have` scaffold discharged by a hand-built one-line `exact` (deeply nested)
+have hwindow : ∀ s : ℝ, f s = (F (s + a) - F s) / F a := by
+  intro s
+  have h2 : … := by
+    have hfun : (fun u ↦ f (s + u)) = fun u ↦ f s * f u := by funext u; rw [hmul s u]
+    rw [hfun, intervalIntegral.integral_const_mul]
+  have hsub : … := by …
+  have hadj : … := by …
+  rw [eq_div_iff ha, hsub, hadj]
+exact (((hFcont.comp (continuous_id.add continuous_const)).sub hFcont).div_const (F a)).congr
+  fun s ↦ (hwindow s).symm
+```
+```lean
+-- after: prove the short fact first, `convert`, and the former `have` body is now the main goal
+have hcontinuous : Continuous fun s ↦ (F (s + a) - F s) / F a := by fun_prop
+convert hcontinuous with s
+have h2 : … := by simp_rw [hmul s, intervalIntegral.integral_const_mul]   -- folded
+have hsub : … := by …
+have hadj : … := by …
+rw [eq_div_iff ha, hsub, hadj]
+```
+
+Both proofs do the same mathematics, but the second dedents everything by a level, replaces the
+hand-built continuity term with `fun_prop`, and reads as a sequence of steps rather than a scaffold.
+*(#40973.)*

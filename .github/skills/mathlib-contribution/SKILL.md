@@ -140,6 +140,9 @@ These are the conventions most frequently flagged in real reviews. Each is one l
 - **Reach for automation** (`grind`, `simp`, `gcongr`, `positivity`, `fun_prop`, `omega`) with explicit
   lemma lists over manual ladders; `by classical` instead of a `[DecidableEq]` argument; `by_contra!`
   over `by_contra; push_neg`. Don't reformat code you aren't changing.
+- **Keep proofs shallow**: a big `have` scaffold closed by a one-line `exact` is a machine-written
+  tell — *fold* short `have`s inline, and *invert* a "big `have` + `exact`" into "short fact +
+  `convert` + former `have` body as the main goal", so the proof reads top-down with minimal nesting.
 
 **Documentation** (`references/documentation.md`)
 - Current file header is the module form: copyright (current year), then `module`, then grouped
@@ -170,6 +173,7 @@ These are the conventions most frequently flagged in real reviews. Each is one l
 - [ ] Constraint hypotheses in `[ ]`; `@[simp]` on iff/apply lemmas; nothing `simp`/`Iff.rfl` already proves.
 - [ ] No non-terminal `simp` (use `simpa`/explicit); docstring continuation lines unindented.
 - [ ] Reached for automation (`grind`/`simp`/`fun_prop`/`positivity`) over manual proofs where possible.
+- [ ] Proofs read top-down with minimal nesting: short `have`s folded in; no big `have` scaffold + one-line `exact`.
 - [ ] PR title is `type(scope): subject`; description has motivation; AI use disclosed.
 
 ## References
@@ -179,7 +183,7 @@ Read the relevant file when you need depth or the user pushes back on a conventi
 - `references/naming.md` — capitalization rules, the symbol dictionary, structural-lemma naming
   (`.ext`, `_injective`/`_inj`, `ge`/`gt`), coercions, with real PR examples.
 - `references/style.md` — layout, `calc`, focusing dots, the full *tactic idiom* substitution table
-  (e.g. `rw …; exact` → `rwa`), `erw`/transparency, simp-squeezing.
+  (e.g. `rw …; exact` → `rwa`), `erw`/transparency, simp-squeezing, proof shape (fold/invert `have`s).
 - `references/api-design.md` — explicit types, generality, `variable` blocks, instances, attributes,
   `@[simps]`, transparency, and the deprecation recipe.
 - `references/documentation.md` — file header / module system, module docstrings, doc requirements,
